@@ -5,8 +5,7 @@ import sqlite3
 import json
 import pandas as pd
 from datetime import datetime
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 # ==========================================
 # 1. DATABASE SQLITE PERSISTENCE
@@ -45,7 +44,7 @@ def load_history():
     conn.close()
     return df
 
-# Initialize Database
+# Inisialisasi Database
 init_db()
 
 # ==========================================
@@ -91,20 +90,36 @@ st.caption("Aplikasi MVP Terpadu: Otomasi Bisnis, Kalkulasi Finansial, dan Gener
 st.sidebar.header("🔑 Pengaturan API Key")
 gemini_api_key = st.sidebar.text_input("Gemini API Key:", type="password", help="Masukkan API Key Google Gemini Anda untuk aktifkan real AI generation.")
 
-# Initialize Gemini Client
-client = None
 if gemini_api_key:
-    try:
-        client = genai.Client(api_key=gemini_api_key)
-        st.sidebar.success("Gemini API Terhubung!")
-    except Exception as e:
-        st.sidebar.error(f"Gagal menghubungkan API: {e}")
+    st.sidebar.success("Gemini API Key Terpasang!")
 else:
     st.sidebar.info("💡 Mode Simulasi aktif. Masukkan Gemini API Key untuk hasil generasi AI langsung dari LLM.")
 
 st.sidebar.markdown("---")
 st.sidebar.header("📌 Navigasi Utama")
 main_menu = st.sidebar.radio("Pilih Halaman:", ["🛠️ Dashboard 19 Tools AI", "📜 Riwayat & Export Proyek"])
+
+# Helper Function untuk Call Gemini API (Compatible dengan google-generativeai)
+def generate_ai_response(prompt_system, prompt_user):
+    if gemini_api_key:
+        try:
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            full_prompt = f"{prompt_system}\n\n[INPUT PENGGUNA]:\n{prompt_user}"
+            response = model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            return f"[Error API]: {str(e)}"
+    else:
+        # Output Simulasi jika API Key belum diisi
+        return (
+            f"=== [HASIL SIMULASI TOOL] ===\n\n"
+            f"Permintaan: {prompt_user}\n\n"
+            f"Rekomendasi Strategis:\n"
+            f"1. Implementasikan ide ini dengan fokus pada skalabilitas operasional.\n"
+            f"2. Gunakan pendekatan terstruktur berbasis nilai kerapatan informasi Zuhri.\n"
+            f"3. Lakukan uji coba pasar secara bertahap dalam kurun waktu 14 hari."
+        )
 
 # ==========================================
 # 4. HALAMAN 1: DASHBOARD 19 TOOLS AI
@@ -119,28 +134,6 @@ if main_menu == "🛠️ Dashboard 19 Tools AI":
             "4. Optimasi, Pemasaran & Media Visual"
         ]
     )
-
-    # Helper Function untuk Call Gemini API
-    def generate_ai_response(prompt_system, prompt_user):
-        if client:
-            try:
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=f"{prompt_system}\n\n[INPUT PENGGUNA]:\n{prompt_user}"
-                )
-                return response.text
-            except Exception as e:
-                return f"[Error API]: {str(e)}"
-        else:
-            # Output Simulasi jika API Key belum diisi
-            return (
-                f"=== [HASIL SIMULASI TOOL] ===\n\n"
-                f"Permintaan: {prompt_user}\n\n"
-                f"Rekomendasi Strategis:\n"
-                f"1. Implementasikan ide ini dengan fokus pada skalabilitas operasional.\n"
-                f"2. Gunakan pendekatan terstruktur berbasis nilai kerapatan informasi Zuhri.\n"
-                f"3. Lakukan uji coba pasar secara bertahap dalam kurun waktu 14 hari."
-            )
 
     # --- KATEGORI 1: TEKS & NARASI ---
     if category == "1. Generasi Teks & Narasi Bisnis":
