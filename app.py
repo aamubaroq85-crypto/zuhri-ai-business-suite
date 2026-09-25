@@ -99,20 +99,36 @@ st.sidebar.markdown("---")
 st.sidebar.header("📌 Navigasi Utama")
 main_menu = st.sidebar.radio("Pilih Halaman:", ["🛠️ Dashboard 19 Tools AI", "📜 Riwayat & Export Proyek"])
 
-# Helper Function untuk Call Gemini API
+# Helper Function untuk Call Gemini API dengan Auto-Fallback Candidate
 def generate_ai_response(prompt_system, prompt_user):
     if gemini_api_key:
         try:
             genai.configure(api_key=gemini_api_key)
-            # Menggunakan penamaan 'gemini-1.5-flash' secara langsung
-            model = genai.GenerativeModel('gemini-1.5-flash')
             full_prompt = f"{prompt_system}\n\n[INPUT PENGGUNA]:\n{prompt_user}"
-            response = model.generate_content(full_prompt)
-            return response.text
+            
+            # Auto-fallback list
+            model_candidates = [
+                'gemini-1.5-flash-latest',
+                'gemini-1.5-flash',
+                'gemini-1.5-pro',
+                'gemini-pro'
+            ]
+            
+            last_error = None
+            for model_name in model_candidates:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content(full_prompt)
+                    return response.text
+                except Exception as err:
+                    last_error = err
+                    continue
+            
+            return f"[Error API]: {str(last_error)}"
+            
         except Exception as e:
             return f"[Error API]: {str(e)}"
     else:
-        # Output Simulasi jika API Key belum diisi
         return (
             f"=== [HASIL SIMULASI TOOL] ===\n\n"
             f"Permintaan: {prompt_user}\n\n"
@@ -162,10 +178,8 @@ if main_menu == "🛠️ Dashboard 19 Tools AI":
                 st.success(f"Output Berhasil Digenerate! [Zuhri $K_{{nd}}$ Score: {k_nd}]")
                 st.markdown(ai_result)
 
-                # Save to DB
                 save_history(category, tool, user_prompt, ai_result, "K_nd", k_nd)
 
-                # Export Options
                 st.markdown("---")
                 st.subheader("📥 Unduh Output File")
                 d_col1, d_col2, d_col3 = st.columns(3)
@@ -291,7 +305,6 @@ elif main_menu == "📜 Riwayat & Export Proyek":
 
         col_exp1, col_exp2 = st.columns(2)
         
-        # CSV Export
         csv_data = df_history.to_csv(index=False).encode('utf-8')
         col_exp1.download_button(
             label="📊 Unduh Semua Riwayat (.CSV)",
@@ -300,7 +313,6 @@ elif main_menu == "📜 Riwayat & Export Proyek":
             mime="text/csv"
         )
 
-        # JSON Export
         json_export = df_history.to_json(orient="records", indent=2)
         col_exp2.download_button(
             label="📦 Unduh Semua Riwayat (.JSON)",
