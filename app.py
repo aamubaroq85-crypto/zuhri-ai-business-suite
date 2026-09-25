@@ -99,13 +99,13 @@ st.sidebar.markdown("---")
 st.sidebar.header("📌 Navigasi Utama")
 main_menu = st.sidebar.radio("Pilih Halaman:", ["🛠️ Dashboard 19 Tools AI", "📜 Riwayat & Export Proyek"])
 
-# Helper Function untuk Call Gemini API (Fixed for google-generativeai v1beta)
+# Helper Function untuk Call Gemini API
 def generate_ai_response(prompt_system, prompt_user):
     if gemini_api_key:
         try:
             genai.configure(api_key=gemini_api_key)
-            # Menggunakan penamaan 'models/gemini-1.5-flash' agar kompatibel penuh
-            model = genai.GenerativeModel('models/gemini-1.5-flash')
+            # Menggunakan penamaan 'gemini-1.5-flash' secara langsung
+            model = genai.GenerativeModel('gemini-1.5-flash')
             full_prompt = f"{prompt_system}\n\n[INPUT PENGGUNA]:\n{prompt_user}"
             response = model.generate_content(full_prompt)
             return response.text
